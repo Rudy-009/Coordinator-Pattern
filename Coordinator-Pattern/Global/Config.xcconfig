@@ -1,0 +1,13 @@
+//
+//  Config.xcconfig
+//  Smashing-Assignment
+//
+//  Created by 이승준 on 12/30/25.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
+
+BaseURL = https://www.kobis.or.kr/kobisopenapi/webservice/rest/
+
+MOVIE_API_KEY = dbaa00196d9fc5ea7420000234c5ded3
