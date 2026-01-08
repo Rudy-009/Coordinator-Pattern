@@ -7,7 +7,11 @@
 
 import UIKit
 
-final class RootViewSwitcher {
+protocol RootViewSwitcherProtocol {
+    func setRoot(_ viewController: UIViewController, animated: Bool)
+}
+
+final class RootViewSwitcher: RootViewSwitcherProtocol {
     static let shared = RootViewSwitcher()
     private init() {}
 

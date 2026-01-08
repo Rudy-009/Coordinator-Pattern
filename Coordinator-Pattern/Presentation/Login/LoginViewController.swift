@@ -9,44 +9,42 @@ import UIKit
 
 final class LoginViewController: UIViewController {
     
-    private let loginButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("로그인 성공 시뮬레이션", for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
-        button.backgroundColor = .systemBlue
-        button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 10
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-    
+    private let buttonGroup = VerticalButtonGroupView()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
         
-        setupUI()
-    }
-    
-    private func setupUI() {
-        view.addSubview(loginButton)
+        view = buttonGroup
         
-        NSLayoutConstraint.activate([
-            loginButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            loginButton.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            loginButton.widthAnchor.constraint(equalToConstant: 200),
-            loginButton.heightAnchor.constraint(equalToConstant: 50)
-        ])
+        buttonGroup.nextButton.setTitle("로그인 성공", for: .normal)
+        buttonGroup.backButton.setTitle("로그인 실패", for: .normal)
+        buttonGroup.notificationButton.setTitle("온보딩으로 이동", for: .normal)
         
-        loginButton.addTarget(self, action: #selector(loginButtonTapped), for: .touchUpInside)
+        buttonGroup.backButton
+            .addTarget(self, action: #selector(handleBack), for: .touchUpInside)
+        
+        buttonGroup.nextButton
+            .addTarget(self, action: #selector(handleNext), for: .touchUpInside)
+        
+        buttonGroup.notificationButton
+            .addTarget(self, action: #selector(handleNotification), for: .touchUpInside)
     }
     
-    @objc private func loginButtonTapped() {
-        didLoginSuccess()
+    @objc func handleBack() {
+        print("Login Successed button tapped")
     }
     
-    func didLoginSuccess() {
-        let factory = AppSceneFactory()
-        let mainScene = factory.makeScene(for: .main)
-        RootViewSwitcher.shared.setRoot(mainScene)
+    @objc func handleNext() {
+        print("Login Failed button tapped")
     }
+    
+    @objc func handleNotification() {
+        print("Onboard button tapped")
+    }
+    
+    func setBackgroundColor(_ color: UIColor) {
+        view.backgroundColor = color
+    }
+
 }

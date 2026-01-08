@@ -17,10 +17,6 @@ protocol RootSceneFactory {
     func makeScene(for type: RootSceneType) -> UIViewController
 }
 
-protocol TabBarSceneFactory {
-    func makeViewController(for tab: TabBarController.Tab) -> UIViewController
-}
-
 final class AppSceneFactory: RootSceneFactory {
     func makeScene(for type: RootSceneType) -> UIViewController {
         switch type {
@@ -35,6 +31,10 @@ final class AppSceneFactory: RootSceneFactory {
             return UINavigationController(rootViewController: mainVC)
         }
     }
+}
+
+protocol TabBarSceneFactory {
+    func makeViewController(for tab: TabBarController.Tab) -> UIViewController
 }
 
 final class DefaultTabBarSceneFactory: TabBarSceneFactory {
@@ -68,48 +68,62 @@ enum NotificationType {
 
 protocol Coordinator: AnyObject {
     var childCoordinators: [Coordinator] { get set }
-    var navigationController: UINavigationController { get set }
     func start()
 }
 
-class AppCoordinator: Coordinator {
-    var childCoordinators: [Coordinator] = []
-    var navigationController: UINavigationController
-    var tabBarController: UITabBarController
-    
-    init(navigationController: UINavigationController) {
-        self.navigationController = navigationController
-        self.tabBarController = UITabBarController()
-    }
-    
-    func start() {
-        // 각 탭의 Coordinator 생성 및 시작
-        let homeNC = UINavigationController()
-        let homeCoordinator = HomeCoordinator(navigationController: homeNC)
-        
-        // ... 다른 탭(Rank 등) 설정
-        
-        tabBarController.viewControllers = [homeNC]
-        navigationController.viewControllers = [tabBarController]
-        homeCoordinator.start()
-        childCoordinators.append(homeCoordinator)
-    }
-    
-    // MARK: - 전역 이동 메서드
-    
+// AppCoordinator가 외부(ViewModel 등)로부터 호출받을 인터페이스
+protocol AppCoordinatorProtocol: Coordinator {
+    func showLoginFlow()
+    func showMainFlow()
 }
 
-class HomeCoordinator: Coordinator {
-    
-    var childCoordinators: [any Coordinator] = []
-    var navigationController: UINavigationController
-    
-    init(navigationController: UINavigationController) {
-        self.navigationController = navigationController
-    }
+protocol AppChildCoordinatorFactory {
+    func makeLoginCoordinator(parent: AppCoordinatorProtocol) -> Coordinator
+    func makeTabCoordinator(parent: AppCoordinatorProtocol) -> Coordinator
+}
 
+final class AppCoordinator: AppCoordinatorProtocol {
+    
+    var childCoordinators: [Coordinator] = []
+    
+    private let window: UIWindow?
+    private let factory: AppChildCoordinatorFactory
+    private let viewSwitcher: RootViewSwitcherProtocol
+    
+    init(window: UIWindow?,
+         factory: AppChildCoordinatorFactory,
+         viewSwitcher: RootViewSwitcherProtocol = RootViewSwitcher.shared) {
+        self.window = window
+        self.factory = factory
+        self.viewSwitcher = viewSwitcher
+    }
+    
     func start() {
+        showLoginFlow()
+    }
+    
+    func showLoginFlow() {
+        // 1. 기존의 모든 자식 흐름 정리
+        childCoordinators.removeAll()
         
+        // 2. 팩토리를 통해 로그인 코디네이터 생성 및 시작
+        let loginCoordinator = factory.makeLoginCoordinator(parent: self)
+        childCoordinators.append(loginCoordinator)
+        loginCoordinator.start()
+        
+        // 3. ViewSwitcher를 통한 실제 Root 뷰 교체 명령
+        // (loginCoordinator로부터 rootViewController를 받아와서 전달)
+        // viewSwitcher.setRoot(, animated: true)
+    }
+    
+    func showMainFlow() {
+        childCoordinators.removeAll()
+        
+        let tabCoordinator = factory.makeTabCoordinator(parent: self)
+        childCoordinators.append(tabCoordinator)
+        tabCoordinator.start()
+        
+        // viewSwitcher.updateRootView(to: tabCoordinator.rootViewController)
     }
 }
 
