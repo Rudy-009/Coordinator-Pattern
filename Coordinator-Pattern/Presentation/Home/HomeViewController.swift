@@ -9,7 +9,13 @@ import UIKit
 
 import Combine
 
+protocol HomeViewControllerCoordinatorDelegate: AnyObject {
+    func didTapNextButton()
+}
+
 class HomeViewController: UIViewController {
+
+    weak var coordinator: HomeViewControllerCoordinatorDelegate?
     
     private let buttonGroup = VerticalButtonGroupView()
 
@@ -35,6 +41,7 @@ class HomeViewController: UIViewController {
     
     @objc func handleNext() {
         print("Next button tapped")
+        coordinator?.didTapNextButton()
     }
     
     @objc func handleNotification() {

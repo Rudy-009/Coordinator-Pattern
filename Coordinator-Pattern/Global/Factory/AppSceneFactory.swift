@@ -70,7 +70,9 @@ final class HomeCoordinator: Coordinator {
     }
     
     func start() {
-        navigationController.pushViewController(HomeViewController(), animated: true)
+        let homeVC = HomeViewController()
+        homeVC.coordinator = self // HomeCoordinator를 HomeViewController의 delegate로 설정
+        navigationController.pushViewController(homeVC, animated: true)
     }
     
     func pushManageViewController() {
@@ -86,6 +88,12 @@ final class HomeCoordinator: Coordinator {
 extension HomeCoordinator: ManageMatchCoordinatorDelegate {
     func didFinish(child: any Coordinator) {
         childCoordinators = childCoordinators.filter { $0 !== child }
+    }
+}
+
+extension HomeCoordinator: HomeViewControllerCoordinatorDelegate {
+    func didTapNextButton() {
+        pushManageViewController()
     }
 }
 
