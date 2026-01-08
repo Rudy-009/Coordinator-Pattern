@@ -21,144 +21,141 @@ final class AppSceneFactory: RootSceneFactory {
     func makeScene(for type: RootSceneType) -> UIViewController {
         switch type {
         case .login:
-            let loginVC = LoginViewController()
-            return UINavigationController(rootViewController: loginVC)
+            return LoginViewController()
         case .signup:
-            let signUpVC = SignUpViewController()
-            return UINavigationController(rootViewController: signUpVC)
+            return SignUpViewController()
         case .main:
-            let mainVC = TabBarController()
-            return UINavigationController(rootViewController: mainVC)
+            return TabBarController()
         }
     }
-}
-
-protocol TabBarSceneFactory {
-    func makeViewController(for tab: TabBarController.Tab) -> UIViewController
-}
-
-final class DefaultTabBarSceneFactory: TabBarSceneFactory {
-    func makeViewController(for tab: TabBarController.Tab) -> UIViewController {
-        switch tab {
-        case .home:
-            let view = HomeViewController()
-            view.setBackgroundColor(tab.color)
-            return view
-        case .searchMatch:
-            let view = HomeViewController()
-            view.setBackgroundColor(tab.color)
-            return view
-        case .manageMatch:
-            let view = HomeViewController()
-            view.setBackgroundColor(tab.color)
-            return view
-        case .profile:
-            let view = HomeViewController()
-            view.setBackgroundColor(tab.color)
-            return view
-        }
-    }
-}
-
-enum NotificationType {
-    case pushNotificationVC      // VC 바로 이동
-    case pushManageMatchVC       // 경기 관리로 이동
-    case updateButtonColorRed    // UI 상태 변경 (버튼 색상)
 }
 
 protocol Coordinator: AnyObject {
     var childCoordinators: [Coordinator] { get set }
+    var navigationController: UINavigationController { get set }
     func start()
 }
 
-// AppCoordinator가 외부(ViewModel 등)로부터 호출받을 인터페이스
-protocol AppCoordinatorProtocol: Coordinator {
-    func showLoginFlow()
-    func showMainFlow()
-}
+final class AppCoordinator: Coordinator {
+        
+    var childCoordinators: [Coordinator]
+    var navigationController: UINavigationController
 
-protocol AppChildCoordinatorFactory {
-    func makeLoginCoordinator(parent: AppCoordinatorProtocol) -> Coordinator
-    func makeTabCoordinator(parent: AppCoordinatorProtocol) -> Coordinator
-}
-
-final class AppCoordinator: AppCoordinatorProtocol {
-    
-    var childCoordinators: [Coordinator] = []
-    
-    private let window: UIWindow?
-    private let factory: AppChildCoordinatorFactory
-    private let viewSwitcher: RootViewSwitcherProtocol
-    
-    init(window: UIWindow?,
-         factory: AppChildCoordinatorFactory,
-         viewSwitcher: RootViewSwitcherProtocol = RootViewSwitcher.shared) {
-        self.window = window
-        self.factory = factory
-        self.viewSwitcher = viewSwitcher
+    init(navigationController: UINavigationController) {
+        self.navigationController = navigationController
+        self.childCoordinators = []
     }
     
     func start() {
-        showLoginFlow()
-    }
-    
-    func showLoginFlow() {
-        // 1. 기존의 모든 자식 흐름 정리
-        childCoordinators.removeAll()
+        // 1. 하위 코디네이터 생성 (NavigationController 전달)
+        // 만약 Delegate가 필요하다면 여기서 주입합니다.
+        let homeCoordinator = HomeCoordinator(navigationController: navigationController)
         
-        // 2. 팩토리를 통해 로그인 코디네이터 생성 및 시작
-        let loginCoordinator = factory.makeLoginCoordinator(parent: self)
-        childCoordinators.append(loginCoordinator)
-        loginCoordinator.start()
+        // 2. 자식 배열에 추가하여 메모리 누수 방지 (Strong Reference)
+        childCoordinators.append(homeCoordinator)
         
-        // 3. ViewSwitcher를 통한 실제 Root 뷰 교체 명령
-        // (loginCoordinator로부터 rootViewController를 받아와서 전달)
-        // viewSwitcher.setRoot(, animated: true)
-    }
-    
-    func showMainFlow() {
-        childCoordinators.removeAll()
-        
-        let tabCoordinator = factory.makeTabCoordinator(parent: self)
-        childCoordinators.append(tabCoordinator)
-        tabCoordinator.start()
-        
-        // viewSwitcher.updateRootView(to: tabCoordinator.rootViewController)
+        // 3. 하위 흐름 시작 -> 여기서 HomeViewController가 Push 됩니다.
+        homeCoordinator.start()
     }
 }
 
-class NotificationViewController: UIViewController {
-    private let buttonGroup = VerticalButtonGroupView()
+final class HomeCoordinator: Coordinator {
+    
+    var childCoordinators: [Coordinator]
+    var navigationController: UINavigationController
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .white
-        
-        view = buttonGroup
-        
-        buttonGroup.backButton
-            .addTarget(self, action: #selector(handleBack), for: .touchUpInside)
-        
-        buttonGroup.nextButton
-            .addTarget(self, action: #selector(handleNext), for: .touchUpInside)
-        
-        buttonGroup.notificationButton
-            .addTarget(self, action: #selector(handleNotification), for: .touchUpInside)
+    init(navigationController: UINavigationController) {
+        self.navigationController = navigationController
+        self.childCoordinators = []
     }
     
-    @objc func handleBack() {
-        print("Back button tapped")
+    func start() {
+        navigationController.pushViewController(HomeViewController(), animated: true)
     }
     
-    @objc func handleNext() {
-        print("Next button tapped")
+    func pushManageViewController() {
+        let coordinator = ManageMatchCoordinator(
+            navigationController: navigationController,
+            delegate: self
+        )
+        coordinator.start()
+        childCoordinators.append(coordinator)
+    }
+}
+
+extension HomeCoordinator: ManageMatchCoordinatorDelegate {
+    func didFinish(child: any Coordinator) {
+        childCoordinators = childCoordinators.filter { $0 !== child }
+    }
+}
+
+protocol ManageMatchCoordinatorDelegate: AnyObject {
+    func didFinish(child: Coordinator)
+}
+
+final class ManageMatchCoordinator: Coordinator {
+    
+    var childCoordinators: [Coordinator]
+    var navigationController: UINavigationController
+    
+    weak var delegate: ManageMatchCoordinatorDelegate?
+
+    init(navigationController: UINavigationController,
+         delegate: ManageMatchCoordinatorDelegate) {
+        self.delegate = delegate
+        self.childCoordinators = []
+        self.navigationController = navigationController
     }
     
-    @objc func handleNotification() {
-        print("Noti button tapped")
+    func start() {
+        navigationController.pushViewController(ManageMatchViewController(), animated: true)
     }
     
-    func setBackgroundColor(_ color: UIColor) {
-        view.backgroundColor = color
+    func pushProfileViewController() {
+        let coordinator = ProfileCoordinator(
+            navigationController: navigationController,
+            delegate: self
+        )
+        coordinator.start()
+        childCoordinators.append(coordinator)
+    }
+    
+    func back() {
+        delegate?.didFinish(child: self)
+        navigationController.popToRootViewController(animated: true)
+    }
+}
+
+extension ManageMatchCoordinator: ProfileCoordinatorDelegate {
+    func didFinish(child: any Coordinator) {
+        childCoordinators = childCoordinators.filter { $0 !== child }
+    }
+}
+
+protocol ProfileCoordinatorDelegate: AnyObject {
+    func didFinish(child: Coordinator)
+}
+
+final class ProfileCoordinator: Coordinator {
+    
+    var childCoordinators: [Coordinator]
+    var navigationController: UINavigationController
+    
+    weak var delegate: ProfileCoordinatorDelegate?
+
+    init(navigationController: UINavigationController,
+         delegate: ProfileCoordinatorDelegate) {
+        self.delegate = delegate
+        self.childCoordinators = []
+        self.navigationController = navigationController
+    }
+    
+    func start() {
+        navigationController.pushViewController(ProfileViewController(), animated: true)
+    }
+    
+    func back() {
+        delegate?.didFinish(child: self)
+        navigationController.popToRootViewController(animated: true)
     }
 }

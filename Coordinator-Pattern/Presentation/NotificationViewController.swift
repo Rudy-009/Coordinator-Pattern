@@ -1,18 +1,13 @@
 //
-//  Combine_HJB.swift
-//  Smashing-Assignment
+//  NotificationViewController.swift
+//  Coordinator-Pattern
 //
-//  Created by 홍준범 on 12/26/25.
+//  Created by 이승준 on 1/8/26.
 //
 
 import UIKit
-import Combine
 
-import Then
-import SnapKit
-
-final class ManageMatchViewController: UIViewController {
-    
+final class NotificationViewController: UIViewController {
     private let buttonGroup = VerticalButtonGroupView()
 
     override func viewDidLoad() {
@@ -46,9 +41,5 @@ final class ManageMatchViewController: UIViewController {
     func setBackgroundColor(_ color: UIColor) {
         view.backgroundColor = color
     }
-
 }
 
-#Preview {
-    ManageMatchViewController()
-}

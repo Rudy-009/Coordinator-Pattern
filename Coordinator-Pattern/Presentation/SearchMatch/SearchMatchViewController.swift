@@ -11,7 +11,7 @@ import Combine
 import Then
 import SnapKit
 
-class SearchMatchViewController: UIViewController {
+final class SearchMatchViewController: UIViewController {
     
     private let buttonGroup = VerticalButtonGroupView()
 

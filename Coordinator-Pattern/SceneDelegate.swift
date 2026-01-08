@@ -9,20 +9,26 @@ import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
-    let factory: RootSceneFactory = AppSceneFactory()
     var window: UIWindow?
+    // 1. AppCoordinator를 프로퍼티로 소유하여 메모리에 유지시킵니다.
+    var appCoordinator: AppCoordinator?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let windowScene = (scene as? UIWindowScene) else { return }
-        
-        let window = UIWindow(windowScene: windowScene)
-        let initialVC = factory.makeScene(for: .main)
-        window.rootViewController = initialVC
-        self.window = window
-        window.makeKeyAndVisible()
+
+        // 2. 앱 전체에서 공유할 Root NavigationController를 생성합니다.
+        let navigationController = UINavigationController()
+
+        // 3. AppCoordinator를 초기화합니다.
+        appCoordinator = AppCoordinator(navigationController: navigationController)
+
+        // 4. AppCoordinator의 start()를 호출하여 첫 화면(Flow)을 결정합니다.
+        appCoordinator?.start()
+
+        // 5. UIWindow를 설정하고 화면에 표시합니다.
+        window = UIWindow(windowScene: windowScene)
+        window?.rootViewController = navigationController // Coordinator가 관리하는 네비게이션을 루트로 설정
+        window?.makeKeyAndVisible()
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
